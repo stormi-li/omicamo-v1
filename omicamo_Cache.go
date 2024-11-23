@@ -2,7 +2,6 @@ package omicamo
 
 import (
 	"context"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/stormi-li/omisync-v1"
@@ -10,14 +9,12 @@ import (
 
 // 分布式锁前缀
 var DLockPrefix = "stormi:dlock:"
-var NullString = "_null"
 
 // Cache 结构体定义
 type Cache struct {
 	redisClient         *redis.Client        // Redis 客户端
 	ctx                 context.Context      // 上下文，用于 Redis 操作
 	omisyncClient       *omisync.Client      // Omisync 分布式锁客户端
-	DelayDuration       time.Duration        // 延迟时间，用于延时双删
 	cacheGetCallback    func(string) string  // 缓存读取回调
 	cacheSetCallback    func(string, string) // 缓存写入回调
 	databaseGetCallback func(string) string  // 数据库读取回调
@@ -31,7 +28,6 @@ func newCache(redisClient *redis.Client) *Cache {
 		redisClient:   redisClient,
 		ctx:           context.Background(),
 		omisyncClient: omisync.NewClient(redisClient.Options()),
-		DelayDuration: 2 * time.Second, // 默认延迟 2 秒
 	}
 }
 
@@ -63,10 +59,9 @@ func (c *Cache) Get(key string) string {
 
 	// 从数据库中获取值
 	res = c.databaseGetCallback(key)
-	if res == "" {
-		res = NullString
+	if res != "" {
+		c.cacheSetCallback(key, res)
 	}
-	c.cacheSetCallback(key, res)
 	return res
 }
 
