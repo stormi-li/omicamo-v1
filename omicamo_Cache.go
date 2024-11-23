@@ -9,10 +9,11 @@ import (
 
 // 分布式锁前缀
 var DLockPrefix = "stormi:dlock:"
+var NullString = "_null"
 
 // Cache 结构体定义
 type Cache struct {
-	redisClient         *redis.Client        // Redis 客户端
+	RedisClient         *redis.Client        // Redis 客户端
 	ctx                 context.Context      // 上下文，用于 Redis 操作
 	omisyncClient       *omisync.Client      // Omisync 分布式锁客户端
 	cacheGetCallback    func(string) string  // 缓存读取回调
@@ -25,7 +26,7 @@ type Cache struct {
 // NewCache 创建一个新的 Cache 实例
 func newCache(redisClient *redis.Client) *Cache {
 	return &Cache{
-		redisClient:   redisClient,
+		RedisClient:   redisClient,
 		ctx:           context.Background(),
 		omisyncClient: omisync.NewClient(redisClient.Options()),
 	}
@@ -59,9 +60,10 @@ func (c *Cache) Get(key string) string {
 
 	// 从数据库中获取值
 	res = c.databaseGetCallback(key)
-	if res != "" {
-		c.cacheSetCallback(key, res)
+	if res == "" {
+		res = NullString
 	}
+	c.cacheSetCallback(key, res)
 	return res
 }
 
@@ -72,7 +74,7 @@ func (c *Cache) Set(key, value string) {
 	dLock.Lock()
 	defer dLock.Unlock()
 
-	c.redisClient.Del(c.ctx, key)
+	c.RedisClient.Del(c.ctx, key)
 	// 更新数据
 	c.databaseSetCallback(key, value)
 	c.cacheSetCallback(key, value)
