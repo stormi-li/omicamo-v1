@@ -15,16 +15,26 @@ var password = "12982397StrongPassw0rd"
 func main() {
 	c := omicamo.NewClient(&redis.Options{Addr: redisAddr, Password: password})
 	cache := c.NewCache()
-	cache.AddCallback(func(key string) string {
+
+	cacheGetCallback := func(key string) string {
 		res, _ := c.RedisClient.Get(context.Background(), key).Result()
 		return res
-	}, func(key string) string {
-		return key
-	}, func(key, value string) {
-		c.RedisClient.Set(context.Background(), key, value, 1*time.Minute)
-	}, func(key, value string) {})
+	}
+	databaseGetCallback := func(key string) string { return "" }
+	cacheSetCallback := func(key, value string) {
+		c.RedisClient.Set(context.Background(), key, value, 5*time.Minute)
+	}
+	databaseSetCallback := func(key, value string) {}
 
-	cache.Set("key1", "fsfsfsf")
-	res := cache.Get("key1")
+	cache.AddCallback(cacheGetCallback, databaseGetCallback, cacheSetCallback, databaseSetCallback)
+
+	key := "name"
+	value := "stormi-li"
+	
+	res := cache.Get(key)
+	if res == omicamo.NullString {
+		cache.Set(key, value)
+	}
+	res = cache.Get(key)
 	fmt.Println(res)
 }
