@@ -33,7 +33,7 @@ func newCache(redisClient *redis.Client) *Cache {
 }
 
 // 设置回调函数
-func (c *Cache) SetCallback(cacheGet, databaseGet func(key string) string, cacheSet, databaseSet func(key string, value string)) {
+func (c *Cache) AddCallback(cacheGet, databaseGet func(key string) string, cacheSet, databaseSet func(key string, value string)) {
 	c.cacheGetCallback = cacheGet
 	c.cacheSetCallback = cacheSet
 	c.databaseGetCallback = databaseGet
